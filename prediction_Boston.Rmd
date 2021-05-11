@@ -22,21 +22,6 @@ Predicting crime rates in Boston data. The Boston data set is in the MASS packag
 head(Boston)
 ```
 
-Build a regression model to predict the crime rate (crim) in Boston suburbs based on the other provided variables.
-
-The solution includes:
-
-• A brief exploratory analysis.
-
-
-• A description of the set of regression models to be considered.
-
-
-• A description of how the models were evaluated.
-
-
-• A summary of one model, based on the analysis, is the best among to be considered.
-
 
 ## Exploratory Analysis
 
