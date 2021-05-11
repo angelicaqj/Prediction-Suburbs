@@ -1,0 +1,149 @@
+---
+title: "Prediction Project"
+author: "Angelicaqj"
+date: "5/10/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 8,fig.height = 5)
+library(MASS)
+library(boot)
+library(leaps)
+library(reshape2)
+library(ggpubr)
+```
+
+
+Predicting crime rates in Boston data. The Boston data set is in the MASS package, and first you will need to load it.
+
+```{r}
+?Boston # explore the data
+head(Boston)
+```
+
+Build a regression model to predict the crime rate (crim) in Boston suburbs based on the other provided variables.
+
+The solution includes:
+
+• A brief exploratory analysis.
+
+
+• A description of the set of regression models to be considered.
+
+
+• A description of how the models were evaluated.
+
+
+• A summary of one model, based on the analysis, is the best among to be considered.
+
+
+## Exploratory Analysis
+
+
+```{r}
+#create a matrix with the correlation of each variable
+cor_matrix <- round(cor(Boston),2)
+melted_cor_matrix <- melt(cor_matrix)
+
+# create a heatmap to visualize the correlation
+ggplot(data = melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) + geom_tile()
+```
+
+
+```{r}
+# Three scatter plots 
+q1 <- qplot(x = factor(rad), y = crim, data = Boston)
+q2 <- qplot(x = black, y = crim, data = Boston)
+q3 <- qplot(x = lstat, y = crim, data = Boston)
+
+ggarrange(q1,q2,q3 , ncol = 3, nrow = 1)
+```
+
+
+<p>&nbsp;</p>
+
+Generalize a linear model 
+
+```{r}
+glm_boston <- glm(crim ~ ., data = Boston)
+summary(glm_boston)
+```
+
+The approach that we have been taking in this dataset is to use regression as a way of summarizing relationships between some of the variables in the dataset.
+
+## Set Regression Models and evaluation
+
+Best subset selection by identifying the best model that contain a given number of predictors.
+
+```{r}
+# Best subset selection
+regfit_full <- regsubsets(crim ~ ., data = Boston, nvmax = 13)
+reg_summary <- summary(regfit_full)
+#reg_summary
+
+reg_summary$rsq
+```
+
+It seems that the $R^2$ statistic increases from 39%, when only one variable is included in the model, to 45%, when all variables are included. As expected, the $R^2$ statistic increases monotonically as more variables are included.
+
+
+```{r}
+which.min(reg_summary$bic)
+plot(reg_summary$bic, xlab="Number of Variables", ylab="BIC", type="l")
+points(3, reg_summary$bic[3], col="red", cex=2, pch=20)
+plot(regfit_full, scale="bic")
+```
+
+In the first plot, we see that there are three variables that share a BIC close to -260. These three variables are representing in the second plot as `rad`, `black`, and `lstat`, that contain the lowest BIC.
+
+<p>&nbsp;</p>
+
+```{r}
+# Forward Stepwise Selection
+regfit_fwd <- regsubsets(crim ~ ., data = Boston, nvmax = 13, method="forward")
+summary(regfit_fwd)
+
+# Backward Stepwise Selection
+regfit_bwd <- regsubsets(crim ~ ., data = Boston, nvmax = 13, method="backward")
+summary(regfit_bwd)
+```
+
+We can see that using forward and backward stepwise selection, the best one-variable model contains only `rad`.
+
+
+```{r}
+# coefficients for these three selections
+coef(regfit_full, 3)
+coef(regfit_fwd, 3)
+coef(regfit_bwd, 3)
+```
+
+By looking at the coefficients for these three selections, the best one-variable through three-variable models are each identical for best subset and forward selection.
+
+
+```{r}
+# fit the best model with the best predictors
+glm_fit_best <- glm(crim ~ rad + black + lstat, data = Boston)
+
+# find avg. squared error with cross validation
+cv_err <- cv.glm(Boston, glm_fit_best)
+
+# cross-validation result
+cv_err$delta
+```
+
+
+## Summary
+
+The best model according the Best Subset selection and Forward Stepwise selection is a model with three variables. The BIC plot shows noticeable that `rad`, `black`, and `lstat` have the lowest BIC. Concluding, the regression model to predict the crime rate (crim) in Boston suburbs is the following:
+
+$$ {crime}_i = \beta_0 + \beta_1{rad} + \beta_2{black} + \beta_3{lstat} + \epsilon_i$$
+
+Based on the coefficients the final prediction model is the following:
+
+$$ {crime}_i = -0.37 + 0.49{rad} -0.01{black} + 0.21{lstat}$$
+```{r}
+summary(lm(crim ~ rad + black + lstat, data = Boston))
+```
+
